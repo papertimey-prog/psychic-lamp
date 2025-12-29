@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html data-theme="dark">
 <head>
-    <title>Remind-O-Matic</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remind-O-Matic PWA</title>
+    <link rel="manifest" href="manifest.json">
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.23/dist/full.min.css" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/kaplay@3001.0.0-alpha.20/dist/kaplay.js"></script>
@@ -10,74 +13,65 @@
 
     <div class="fixed top-0 left-0 w-full z-10 p-6 flex flex-col gap-4 pointer-events-none">
         <div class="flex justify-between items-center pointer-events-auto">
-            <h1 class="text-3xl font-black text-primary italic">REMIND.JS</h1>
-            <div class="badge badge-secondary font-bold">OFFLINE PRO</div>
+            <h1 class="text-3xl font-black text-primary italic tracking-tighter">REMIND.JS</h1>
+            <button onclick="localStorage.clear(); location.reload();" class="btn btn-ghost btn-xs opacity-50">Clear All</button>
         </div>
 
         <div class="join w-full max-w-md mx-auto shadow-2xl pointer-events-auto">
-            <input id="remindInput" class="input input-bordered join-item w-full" placeholder="What's next?" />
-            <button id="addBtn" class="btn btn-primary join-item">ADD</button>
+            <input id="remindInput" class="input input-bordered join-item w-full bg-base-100" placeholder="Type a reminder..." />
+            <button id="addBtn" class="btn btn-primary join-item px-8">ADD</button>
         </div>
     </div>
 
     <script>
-        // Start KAPLAY and attach to background
+        // 1. INITIALIZE KAPLAY
         const k = kaplay({
             global: true,
-            background: [29, 35, 42], // Match DaisyUI 'dark' theme
+            background: [29, 35, 42],
             letterbox: true
         });
 
         let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
 
-        // Component to render the list
+        // 2. RENDER LOGIC
         function renderReminders() {
             destroyAll("item");
-            
-            reminders.forEach((text, i) => {
+            reminders.forEach((textStr, i) => {
                 const item = add([
-                    rect(width() - 80, 60, { radius: 8 }),
-                    pos(40, 160 + (i * 70)),
-                    color(50, 50, 50),
+                    rect(width() - 60, 64, { radius: 12 }),
+                    pos(center().x, 180 + (i * 74)),
+                    color(40, 45, 55),
                     area(),
-                    outline(2, i % 2 == 0 ? rgb(100, 100, 255) : rgb(255, 100, 255)),
+                    outline(2, i % 2 == 0 ? rgb(124, 58, 237) : rgb(219, 39, 119)),
+                    anchor("center"),
                     "item",
                     { id: i }
                 ]);
 
                 item.add([
-                    text(text, { size: 20 }),
-                    pos(20, 30),
+                    text(textStr, { size: 18, font: "sans-serif" }),
+                    pos(-item.width/2 + 20, 0),
                     anchor("left")
-                ]);
-
-                item.add([
-                    text("DELETE", { size: 12 }),
-                    pos(item.width - 20, 30),
-                    anchor("right"),
-                    color(255, 100, 100)
                 ]);
             });
         }
 
-        // Logic: Add Reminder
+        // 3. ACTIONS
         const input = document.getElementById("remindInput");
         const btn = document.getElementById("addBtn");
 
         function addTask() {
-            if (input.value.trim() !== "") {
+            if (input.value.trim()) {
                 reminders.push(input.value);
                 localStorage.setItem("reminders", JSON.stringify(reminders));
                 input.value = "";
                 renderReminders();
-                k.burp(); // Fun sound effect!
+                k.shake(2);
             }
         }
 
         btn.onclick = addTask;
         onKeyPress("enter", addTask);
-
-        // Logic: Delete Reminder
         onClick("item", (item) => {
             reminders.splice(item.id, 1);
             localStorage.setItem("reminders", JSON.stringify(reminders));
@@ -85,7 +79,13 @@
         });
 
         renderReminders();
-    </script>
 
+        // 4. SERVICE WORKER REGISTRATION
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("./sw.js");
+            });
+        }
+    </script>
 </body>
 </html>
